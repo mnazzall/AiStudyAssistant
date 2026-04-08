@@ -1,0 +1,134 @@
+
+.sidebar {
+  width: 20%;
+  height: 100vh;
+  background-color: var(--sidebar-bg);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border-color);
+  box-sizing: border-box;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  margin-bottom: 32px;
+}
+
+.logo-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+}
+
+.logo-text {
+  font-size: 25px;
+  font-weight: 600;
+  color: var(--text-main);
+  letter-spacing: 0.5px;
+}
+
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px; 
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  text-decoration: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  font-weight: 500;
+  border-radius: 12px; 
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+
+.nav-item svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor; 
+  stroke-width: 2;
+  fill: none;
+}
+
+
+.nav-item:hover:not(.active) {
+  background-color: var(--hover-bg);
+  color: var(--text-main);
+}
+
+.nav-item.active {
+  background-color: var(--active-bg);
+  color: var(--text-main);
+  font-weight: 600; 
+}
+
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    height: auto;
+    padding: 16px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .sidebar-logo {
+    margin-bottom: 0;
+    padding: 0;
+    gap: 10px;
+  }
+
+  .logo-text {
+    display: none;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: auto;
+    justify-content: flex-end;
+  }
+
+  .nav-item {
+    padding: 10px 12px;
+    font-size: 14px;
+    min-width: 100px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar {
+    padding: 12px;
+  }
+
+  .nav-item {
+    min-width: 80px;
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  .nav-item svg {
+    width: 18px;
+    height: 18px;
+  }
+}

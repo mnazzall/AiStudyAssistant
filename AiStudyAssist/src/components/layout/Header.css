@@ -1,0 +1,103 @@
+.header{
+    height: 70px;
+    width: 100%;
+    background-color: var(--sidebar-bg);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding: 0px 15px 0px 15px;
+}
+
+.search-bar{
+    width: 60%;
+    height: 50%;
+    background-color: var(--hover-bg);
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    padding: 3px 15px 3px 15px;
+    font-size: 20px;
+}
+
+.buttons-box {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 20px;
+}
+
+.Bell{
+    color: var(--text-muted);
+    cursor: pointer;
+    background: none;
+    border: none;
+    
+}
+
+.Bell svg {
+  width: 30px;
+  height: 50%;
+  fill: none;
+  align-items: center;
+  padding: 0%;
+}
+
+.Settings{
+    color: var(--text-muted);
+    cursor: pointer;
+    background: none;
+    border: none;
+}
+
+.Settings svg {
+  width: 30px;
+  height: 50%;
+  fill: none;
+  align-items: center;
+  padding: 0%;
+}
+
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px 15px;
+    height: auto;
+  }
+
+  .search-bar {
+    width: 100%;
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+
+  .buttons-box {
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .Bell svg,
+  .Settings svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 12px 10px;
+  }
+
+  .search-bar {
+    font-size: 14px;
+  }
+
+  .buttons-box {
+    gap: 10px;
+  }
+}
