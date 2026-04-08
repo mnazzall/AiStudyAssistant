@@ -1,0 +1,26 @@
+.topic-page {
+   height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: row;
+    margin: 0px;
+    padding: 0px;
+    position: fixed;
+    top: 0;
+    left: 0;
+}
+
+.topic-content {
+   flex: 1; 
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    margin: 0px;
+    padding: 0px;
+}
+
+.topics-container{
+    flex: 1;
+    padding: 20px;
+    background-color: #f9f9f9;
+}
