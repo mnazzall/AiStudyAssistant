@@ -13,6 +13,7 @@
     width: 60%;
     height: 50%;
     background-color: var(--hover-bg);
+    border: 1px solid black;
     border-radius: 15px;
     display: flex;
     align-items: center;
