@@ -5,6 +5,7 @@ import './App.css'
 import MainLayout from './components/layout/mainLayout'
 import Topic from './components/topics/topic'
 import SignUp from './components/registration/signUp'
+import SignIn from './components/registration/signIn'
 
 function App() {
 
@@ -13,6 +14,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/signup" element={<SignUp />} />
+          <Route path="/signin" element={<SignIn />} />
           <Route path="/" element={<MainLayout />} />
           <Route path="/topics" element={<Topic />} />
         </Routes>
