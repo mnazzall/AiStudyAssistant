@@ -8,6 +8,7 @@ function SignUp() {
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
+        dob: "",
         email: "",
         password: "",
     });
@@ -87,6 +88,15 @@ function SignUp() {
                         
                     />
                 </div>
+                </div>
+                <div className="dob-container">
+                    <h3>Date of Birth</h3>
+                    <Calendar className="placeholder-icon-signup" size={18} />
+                    <input
+                        type="date"
+                        value={formData.dob}
+                        onChange={(e) => setFormData({...formData, dob: e.target.value})}
+                    />
                 </div>
                 <div>
                     <Mail className="placeholder-icon-signup" size={18} />

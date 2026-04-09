@@ -1,5 +1,6 @@
 import React,{useState} from "react";
 import { Mail, Lock, EyeOff, Eye } from "lucide-react";
+import {useNavigate } from "react-router-dom";
 import './signIn.css'
 
 function SignIn() {
@@ -8,6 +9,8 @@ function SignIn() {
         password: "",
     });
     const [showPassword, setShowPassword] = useState(false);
+
+    const navigate = useNavigate();
     
     return(
         <div className="signIn-container">
@@ -39,6 +42,7 @@ function SignIn() {
                         placeholder="Password"
                         onChange={(e) => setFormData({...formData, password: e.target.value})}
                         required
+                        minLength={6}
                     />
                     {showPassword ? (
                         <Eye className="password-toggle-icon" size={18} onClick={() => setShowPassword(false)} />
