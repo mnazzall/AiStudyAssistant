@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { User, Calendar, Mail, Lock, EyeOff, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "./supabaseClient"; 
+import { supabase } from "../../supabaseClient";
+import { API_START_URL } from "../../config"; // Make sure this path is correct based on your project structure
 import './signUp.css';
 
 function SignUp() {
@@ -25,7 +26,7 @@ function SignUp() {
         setErrorMessage("");
 
         try {
-            
+            // 1. Create the user in Supabase Auth
             const { data, error } = await supabase.auth.signUp({
                 email: formData.email,
                 password: formData.password,
@@ -37,17 +38,57 @@ function SignUp() {
                 }
             });
 
-            
             if (error) {
                 setErrorMessage(error.message);
                 setIsLoading(false);
                 return;
             }
- 
-            console.log("Supabase signup successful!", data);
-            
-            alert("Account created! Please check your email to verify your account.");
-            navigate("/signin"); 
+
+            // 2. Extract JWT
+            if (data.session && data.session.access_token) {
+                const jwtToken = data.session.access_token;
+                localStorage.setItem("user_jwt", jwtToken);
+                localStorage.setItem("user_name", formData.firstName);
+                localStorage.setItem("user_email", formData.email);
+                
+                console.log("Signup successful! JWT and user data saved.");
+
+                // 3. Sync the new user with your Spring Boot backend
+                try {
+                    const syncResponse = await fetch(`${API_START_URL}users/sync`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${jwtToken}`, // Your JWT goes here
+                            'ngrok-skip-browser-warning': 'true'
+                        },
+                        // Send any data your backend database needs to store
+                        body: JSON.stringify({
+                            email: formData.email,
+                            firstName: formData.firstName,
+                            lastName: formData.lastName,
+                            dob: formData.dob,
+                            supabaseId: data.user.id // Good practice to link your DB to Supabase's unique ID
+                        })
+                    });
+
+                    if (!syncResponse.ok) {
+                        // If the backend fails, log it. You might want to handle this differently 
+                        // depending on how critical the database sync is to user access.
+                        console.error("Backend sync failed:", await syncResponse.text());
+                    } else {
+                        console.log("Successfully synced user to backend database.");
+                    }
+
+                } catch (syncError) {
+                    console.error("Network error during backend sync:", syncError);
+                }
+                
+                // Route directly to topics
+                navigate("/topics");
+            } else {
+                setErrorMessage("Signup succeeded, but no token was returned. Check Supabase settings.");
+            }
 
         } catch (error) {
             console.error("Unexpected error:", error);

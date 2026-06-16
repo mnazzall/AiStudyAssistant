@@ -1,0 +1,101 @@
+.pdf-viewer-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    background-color: transparent;
+    padding: 20px 0;
+    font-family: var(--font-family);
+}
+
+.pdf-document-wrapper {
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-light);
+    overflow: hidden;
+    animation: fadeInPdf 0.4s ease-out;
+    transition: var(--transition);
+}
+
+@keyframes fadeInPdf {
+    from { 
+        opacity: 0; 
+        transform: translateY(15px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+.react-pdf__Page__canvas {
+    max-width: 100%;
+    height: auto !important;
+    border-radius: var(--radius-sm);
+}
+
+.react-pdf__Page__textContent, 
+.react-pdf__Page__annotations {
+    border-radius: var(--radius-sm);
+}
+
+.pdf-error-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    background-color: var(--danger-light);
+    border: 1px dashed var(--danger);
+    border-radius: var(--radius-lg);
+    text-align: center;
+    margin-top: 40px;
+    max-width: 400px;
+    animation: fadeInPdf 0.3s ease-out;
+}
+
+.pdf-error-icon {
+    color: var(--danger);
+    margin-bottom: 16px;
+}
+
+.pdf-error-container h3 {
+    color: var(--danger-hover);
+    margin: 0 0 8px 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.pdf-error-container p {
+    color: var(--danger);
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.pdf-error-container strong {
+    font-weight: 700;
+    color: var(--text-strong);
+    background-color: var(--bg-secondary);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--danger);
+}
+
+.pdf-loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    color: var(--text-muted);
+    gap: 16px;
+}
+
+.pdf-loading-container p {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
+}

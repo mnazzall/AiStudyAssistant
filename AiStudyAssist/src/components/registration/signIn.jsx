@@ -1,6 +1,8 @@
-import React,{useState} from "react";
+import React, { useState } from "react";
 import { Mail, Lock, EyeOff, Eye } from "lucide-react";
-import {useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../../supabaseClient";
+import { API_START_URL } from "../../config";
 import './signIn.css'
 
 function SignIn() {
@@ -9,8 +11,75 @@ function SignIn() {
         password: "",
     });
     const [showPassword, setShowPassword] = useState(false);
+    
+    const [isLoading, setIsLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState("");
 
     const navigate = useNavigate();
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setErrorMessage("");
+
+        try {
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email: formData.email,
+                password: formData.password,
+            });
+
+            if (error) {
+                setErrorMessage("Invalid email or password.");
+                setIsLoading(false);
+                return;
+            }
+
+            // Extract the JWT and save it to localStorage
+            if (data.session && data.session.access_token) {
+                const jwtToken = data.session.access_token;
+                
+                localStorage.setItem("user_jwt", jwtToken);
+                console.log("Sign in successful! JWT saved.");
+                
+                // Fetch user profile from backend to get first name
+                try {
+                    const profileResponse = await fetch(`${API_START_URL}user/profile`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${jwtToken}`,
+                            'ngrok-skip-browser-warning': 'true'
+                        }
+                    });
+
+                    if (profileResponse.ok) {
+                        const userData = await profileResponse.json();
+                        localStorage.setItem("user_name", userData.firstName || userData.email);
+                        localStorage.setItem("user_email", userData.email);
+                    } else {
+                        // Fallback: use email if profile fetch fails
+                        localStorage.setItem("user_name", formData.email.split('@')[0]);
+                        localStorage.setItem("user_email", formData.email);
+                    }
+                } catch (profileError) {
+                    console.error("Error fetching profile:", profileError);
+                    // Fallback: use email if fetch fails
+                    localStorage.setItem("user_name", formData.email.split('@')[0]);
+                    localStorage.setItem("user_email", formData.email);
+                }
+                
+                // Route to the app
+                navigate("/topics"); // Adjust to your main app route
+            } else {
+                setErrorMessage("Authentication failed: No token received.");
+            }
+
+        } catch (error) {
+            console.error("Unexpected error:", error);
+            setErrorMessage("An unexpected error occurred. Please try again.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
     
     return(
         <div className="signIn-container">
@@ -18,11 +87,12 @@ function SignIn() {
               
             <h1>Aura Study</h1>
             <p>Welcome Back!</p>
+
+            {errorMessage && <p style={{ color: "#ef4444", fontSize: "14px", marginBottom: "16px" }}>{errorMessage}</p>}
                
-            <form>
+            <form onSubmit={handleSubmit}>
                 <div>
                     <Mail className="placeholder-icon-signin" size={18} />
-
                     <input
                         type="email"
                         id="email"
@@ -34,7 +104,6 @@ function SignIn() {
                 </div>
                 <div>
                     <Lock className="placeholder-icon-signin" size={18} />
-
                     <input
                         type={showPassword ? "text" : "password"}
                         id="password"
@@ -59,7 +128,10 @@ function SignIn() {
                     <a href="/forgot-password" className="forgot-password-link">Forgot Password?</a>
                 </div>
                 </div>
-                <button type="submit">Sign In</button>
+                
+                <button type="submit" disabled={isLoading}>
+                    {isLoading ? "Signing In..." : "Sign In"}
+                </button>
             </form>
 
             <div className="signup-text">
@@ -68,6 +140,7 @@ function SignIn() {
             </div>
 
         </div>
-    )}
+    )
+}
 
-    export default SignIn;
+export default SignIn;

@@ -1,19 +1,24 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Home, BookOpen } from "lucide-react";
 import './SideBar.css'
 
 const SideBar = () => {
-  const [activeTab, setActiveTab] = useState("Dashboard");
   const navigate = useNavigate();
+  const location = useLocation();
 
   const navLinks = [
     { name: "Dashboard", icon: Home, path: "/" },
     { name: "Topics", icon: BookOpen, path: "/topics" },
   ];
 
+  const getActiveTab = () => {
+    const currentPath = location.pathname;
+    const activeLink = navLinks.find(link => link.path === currentPath);
+    return activeLink ? activeLink.name : "Dashboard";
+  };
+
   const handleNavClick = (link) => {
-    setActiveTab(link.name);
     navigate(link.path);
   };
 
@@ -32,7 +37,7 @@ const SideBar = () => {
           return (
             <button
               key={link.name}
-              className={`nav-item ${activeTab === link.name ? "active" : ""}`}
+              className={`nav-item ${getActiveTab() === link.name ? "active" : ""}`}
               onClick={() => handleNavClick(link)}
             >
               <Icon />
