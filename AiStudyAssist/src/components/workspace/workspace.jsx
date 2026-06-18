@@ -13,11 +13,13 @@ import {
     Maximize,
     ArrowLeft,
     PanelLeftClose,
-    PanelLeft
+    PanelLeft,
+    Loader2
 } from 'lucide-react';
 import './workspace.css';
 import AiPdfViewer from './aiPdfViewer'; 
 import Header from '../layout/Header'; 
+import { API_START_URL, SUPABASE_BUCKET_URL } from '../../config';
 
 export default function Workspace() {
     const { topicName, branchName } = useParams(); 
@@ -25,32 +27,91 @@ export default function Workspace() {
     const navigate = useNavigate();
     
     const passedFiles = location.state?.files || [];
-    
     const formattedTopicName = topicName?.replace('-', ' ');
     const actualBranchName = location.state?.branchName || branchName?.replace('-', ' ') || "Branch";
+    const branchId = location.state?.branchId; 
 
+    // --- APP STATES ---
     const [files, setFiles] = useState([]);
     const [activeFileId, setActiveFileId] = useState(null);
-    const [chatInput, setChatInput] = useState('');
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     
+    // --- PDF STATES ---
     const [numPages, setNumPages] = useState(null);
     const [pageNumber, setPageNumber] = useState(1);
     const [pdfError, setPdfError] = useState(false);
-    
     const pdfPanelRef = useRef(null);
 
+    // --- CHAT STATES ---
+    const [chatInput, setChatInput] = useState('');
+    const [messages, setMessages] = useState([
+        { role: 'ai', answer: "Hi! Select a document from the left and ask me anything about it.", details: [], followUpConcept: null }
+    ]);
+    const [isChatLoading, setIsChatLoading] = useState(false);
+    const chatEndRef = useRef(null);
+
+    const getFullUrl = (urlOrPath) => {
+        if (!urlOrPath) return '';
+        if (urlOrPath.startsWith('http')) return urlOrPath;
+        return `${SUPABASE_BUCKET_URL}${urlOrPath}`;
+    };
+
+    // Auto-scroll to bottom of chat
+    const scrollToBottom = () => {
+        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
     useEffect(() => {
-        const initializedFiles = passedFiles.map(file => ({
-            ...file,
-            selectedForAi: false,
-            url: file.url 
-        }));
-        setFiles(initializedFiles);
-        if (initializedFiles.length > 0) {
-            setActiveFileId(initializedFiles[0].id);
-        }
-    }, [passedFiles]);
+        scrollToBottom();
+    }, [messages, isChatLoading]);
+
+    // ==========================================
+    // BACKEND INTEGRATION: Fetch Branch Resources
+    // ==========================================
+    useEffect(() => {
+        const fetchBranchResources = async () => {
+            if (!branchId) return;
+
+            try {
+                const userJwt = localStorage.getItem("user_jwt");
+                const response = await fetch(`${API_START_URL}resources/branch/${branchId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${userJwt}`,
+                        'ngrok-skip-browser-warning': 'true'
+                    }
+                });
+
+                if (!response.ok) throw new Error("Failed to fetch branch resources");
+                
+                const data = await response.json();
+                
+                const formattedFiles = data.map(res => {
+                    // FIX: Attempt multiple properties to find the real file name.
+                    // Prioritize name, then title, then extract from URL, then fallback.
+                    let extractedName = res.name || res.title || res.fileName;
+                    
+                    if (!extractedName && res.url) {
+                        extractedName = res.url.split('/').pop();
+                    }
+
+                    return {
+                        id: res.id,
+                        name: extractedName || "Unnamed Document", 
+                        url: getFullUrl(res.url || res.fileUrl || res.path),
+                        selectedForAi: false
+                    };
+                });
+
+                setFiles(formattedFiles);
+                if (formattedFiles.length > 0) setActiveFileId(formattedFiles[0].id);
+
+            } catch (err) {
+                console.error("Failed to load files from Backend:", err);
+            }
+        };
+
+        fetchBranchResources();
+    }, [branchId]);
 
     useEffect(() => {
         setPageNumber(1);
@@ -72,9 +133,68 @@ export default function Workspace() {
             return;
         }
         
-        if (taskType === 'Quiz') navigate('/quiz');
-        if (taskType === 'Summary') navigate('/summary');
-        if (taskType === 'Flashcards') navigate('/flashcards');
+        if (taskType === 'Quiz') navigate('/quiz', { state: { selectedFiles } });
+        if (taskType === 'Summary') navigate('/summary', { state: { selectedFiles } });
+        if (taskType === 'Flashcards') navigate('/flashcards', { state: { selectedFiles } });
+    };
+
+    // ==========================================
+    // CHAT API INTEGRATION
+    // ==========================================
+    const handleSendMessage = async (e) => {
+        e?.preventDefault();
+        
+        if (!chatInput.trim()) return;
+        if (!activeFileId) {
+            alert("Please select a document to chat about.");
+            return;
+        }
+
+        const userMessage = chatInput.trim();
+        setChatInput('');
+        
+        // Add user message to UI immediately
+        setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+        setIsChatLoading(true);
+
+        try {
+            const userJwt = localStorage.getItem("user_jwt");
+            const response = await fetch(`${API_START_URL}chat`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${userJwt}`,
+                    'ngrok-skip-browser-warning': 'true'
+                },
+                body: JSON.stringify({
+                    message: userMessage,
+                    resourceId: activeFileId
+                })
+            });
+
+            if (!response.ok) throw new Error("Chat request failed");
+
+            const data = await response.json();
+            
+            // Add the AI response directly mapping your schema
+            setMessages(prev => [...prev, {
+                role: 'ai',
+                answer: data.answer,
+                details: data.details || [],
+                followUpConcept: data.followUpConcept
+            }]);
+
+        } catch (error) {
+            console.error("Chat Error:", error);
+            setMessages(prev => [...prev, {
+                role: 'ai',
+                answer: "Sorry, I encountered an error trying to process that. Please try again.",
+                details: [],
+                followUpConcept: null
+            }]);
+        } finally {
+            setIsChatLoading(false);
+        }
     };
 
     const handleDocumentLoadSuccess = (pages) => setNumPages(pages);
@@ -211,27 +331,73 @@ export default function Workspace() {
                         </div>
                         
                         <div className="messages-area">
-                            <div className="message user-message">
-                                <div className="message-avatar user-avatar">S</div>
-                                <div className="message-content">
-                                    <h4>Sarah</h4>
-                                    <p>What's the difference between butane and isobutane?</p>
+                            {messages.map((msg, index) => (
+                                <div key={index} className={`message ${msg.role === 'user' ? 'user-message' : 'ai-message'}`}>
+                                    <div className={`message-avatar ${msg.role === 'user' ? 'user-avatar' : 'ai-avatar'}`}>
+                                        {msg.role === 'user' ? 'U' : 'A'}
+                                    </div>
+                                    <div className="message-content">
+                                        <h4>{msg.role === 'user' ? 'You' : 'Aura AI'}</h4>
+                                        
+                                        {/* User Text */}
+                                        {msg.role === 'user' && <p>{msg.content}</p>}
+                                        
+                                        {/* AI Response Schema */}
+                                        {msg.role === 'ai' && (
+                                            <div className="ai-structured-response">
+                                                <p style={{ whiteSpace: 'pre-wrap', marginBottom: '8px' }}>{msg.answer}</p>
+                                                
+                                                {msg.details && msg.details.length > 0 && (
+                                                    <ul style={{ paddingLeft: '20px', marginBottom: '12px', color: 'var(--text-muted)' }}>
+                                                        {msg.details.map((detail, dIdx) => (
+                                                            <li key={dIdx} style={{ marginBottom: '4px' }}>{detail}</li>
+                                                        ))}
+                                                    </ul>
+                                                )}
+
+                                                {msg.followUpConcept && (
+                                                    <div style={{ marginTop: '12px', padding: '8px', backgroundColor: 'var(--bg-main)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', fontSize: '0.85rem' }}>
+                                                        <strong style={{ color: 'var(--primary)' }}>Next up: </strong> 
+                                                        <span style={{ cursor: 'pointer' }} onClick={() => setChatInput(`Tell me about ${msg.followUpConcept}`)}>
+                                                            {msg.followUpConcept}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
+                            ))}
+                            
+                            {isChatLoading && (
+                                <div className="message ai-message">
+                                    <div className="message-avatar ai-avatar">A</div>
+                                    <div className="message-content">
+                                        <h4>Aura AI</h4>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)' }}>
+                                            <Loader2 size={16} className="spinner" /> 
+                                            <span>Thinking...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            {/* Invisible div to scroll to */}
+                            <div ref={chatEndRef} />
                         </div>
 
-                        <div className="chat-input-container">
+                        <form className="chat-input-container" onSubmit={handleSendMessage}>
                             <input 
                                 type="text" 
-                                placeholder="Ask a question..." 
+                                placeholder={activeFileId ? "Ask a question..." : "Select a document to chat"} 
                                 value={chatInput}
                                 onChange={(e) => setChatInput(e.target.value)}
                                 className="chat-input"
+                                disabled={!activeFileId || isChatLoading}
                             />
-                            <button className="send-btn">
+                            <button type="submit" className="send-btn" disabled={!activeFileId || isChatLoading || !chatInput.trim()}>
                                 <Send size={16} />
                             </button>
-                        </div>
+                        </form>
                     </div>
                 </aside>
             </main>

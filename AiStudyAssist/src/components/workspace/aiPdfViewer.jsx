@@ -35,7 +35,8 @@ export default function AiPdfViewer({ fileUrl, pageNumber, onDocumentLoadSuccess
         </div>
       ) : (
         <Document 
-          file={fileUrl} 
+          // FIX: Pass as object to bypass CORS blocks on external Supabase URLs
+          file={{ url: fileUrl, withCredentials: false }} 
           onLoadSuccess={handleLoadSuccess}
           onLoadError={onDocumentLoadError}
           className="pdf-document-wrapper"
