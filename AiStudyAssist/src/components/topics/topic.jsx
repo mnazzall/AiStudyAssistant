@@ -16,9 +16,37 @@ import SideBar from "../layout/SideBar";
 import Header from "../layout/Header";
 import './topic.css';
 import { API_START_URL, SUPABASE_BUCKET_NAME } from '../../config'; 
-import { supabase } from '../../supabaseClient';
 
-const FileDropZone = ({ onFilesAdded }) => {
+// --- JWT Helper Functions ---
+function parseJwtPayload(token) {
+    if (!token) return null;
+    try {
+        const parts = token.split(".");
+        if (parts.length < 2) return null;
+        let payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+        while (payload.length % 4) payload += "=";
+        const decoded = atob(payload);
+        return JSON.parse(decoded);
+    } catch (e) {
+        return null;
+    }
+}
+
+function getUserIdFromJwt(token) {
+    const payload = parseJwtPayload(token);
+    if (!payload) return null;
+    return (
+        payload.sub ||
+        payload.userId ||
+        payload.uid ||
+        payload.id ||
+        (payload.user && payload.user.id) ||
+        null
+    );
+}
+
+// --- Drag & Drop Component ---
+const FileDropZone = ({ onFilesAdded, isUploading }) => {
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef(null);
 
@@ -27,34 +55,46 @@ const FileDropZone = ({ onFilesAdded }) => {
     const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation(); if (!isDragging) setIsDragging(true); };
     const handleDrop = (e) => {
         e.preventDefault(); e.stopPropagation(); setIsDragging(false);
+        if (isUploading) return;
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             onFilesAdded(Array.from(e.dataTransfer.files));
             e.dataTransfer.clearData();
         }
     };
-    const handleBrowseClick = () => fileInputRef.current.click();
+    const handleBrowseClick = () => {
+        if (!isUploading) fileInputRef.current.click();
+    };
     const handleFileChange = (e) => {
         if (e.target.files && e.target.files.length > 0) onFilesAdded(Array.from(e.target.files));
     };
 
     return (
-        <div className={`drag-drop-zone ${isDragging ? 'drag-active' : ''}`} onDragEnter={handleDragEnter} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
-            <input type="file" multiple ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} />
+        <div className={`drag-drop-zone ${isDragging ? 'drag-active' : ''} ${isUploading ? 'uploading' : ''}`} onDragEnter={handleDragEnter} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
+            <input type="file" multiple ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} disabled={isUploading} />
             <div style={{ pointerEvents: 'none' }}>
-                <CloudUpload size={24} style={{ margin: '0 auto 8px', color: '#718096' }} />
-                <p>Drag & drop files here, or <span className="browse-link" style={{ pointerEvents: 'auto', cursor: 'pointer', color: '#0ea5e9', textDecoration: 'underline' }} onClick={handleBrowseClick}>browse</span></p>
+                {isUploading ? (
+                    <Loader2 size={24} className="spinner" style={{ margin: '0 auto 8px', color: '#0ea5e9' }} />
+                ) : (
+                    <CloudUpload size={24} style={{ margin: '0 auto 8px', color: '#718096' }} />
+                )}
+                <p>
+                    {isUploading ? 'Registering & uploading securely...' : (
+                        <>Drag & drop files here, or <span className="browse-link" style={{ pointerEvents: 'auto', cursor: 'pointer', color: '#0ea5e9', textDecoration: 'underline' }} onClick={handleBrowseClick}>browse</span></>
+                    )}
+                </p>
             </div>
         </div>
     );
 };
 
-function Topic() {
+export default function Topic() {
     const navigate = useNavigate();
     const [searchTopics, setSearchTopics] = useState("");
-    
     const [topics, setTopics] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [uploadingBranchId, setUploadingBranchId] = useState(null);
     
+    // Modal States
     const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
     const [newTopicData, setNewTopicData] = useState({ title: "", description: "" });
     const [isSubmittingTopic, setIsSubmittingTopic] = useState(false);
@@ -189,37 +229,78 @@ function Topic() {
         }
     };
 
+    // ==========================================
+    // TWO-STAGE SEQUENTIAL UPLOAD LOGIC
+    // ==========================================
     const handleAddFilesToBranch = async (topicId, branchId, newFiles) => {
+        const storedJwt = localStorage.getItem("user_jwt");
+        if (!storedJwt) return alert("Authentication token missing. Please log in.");
+
+        const userId = getUserIdFromJwt(storedJwt);
+        if (!userId) return alert("Unable to determine user identity from session.");
+
+        setUploadingBranchId(branchId);
+        const uploadedFiles = [];
+
         try {
-            const uploadedFiles = [];
-
             for (const file of newFiles) {
-                const fileExt = file.name.split('.').pop();
-                const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-                const filePath = `branch_${branchId}/${Date.now()}_${safeName}`;
+                const startResponse = await fetch(`${API_START_URL}resources/${branchId}`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${storedJwt}`,
+                        'ngrok-skip-browser-warning': 'true'
+                    },
+                    body: JSON.stringify({
+                        title: file.name,
+                        type: file.type || 'application/octet-stream',
+                        size: file.size,
+                    }),
+                });
 
-                const { data, error } = await supabase.storage
-                    .from(SUPABASE_BUCKET_NAME)
-                    .upload(filePath, file, {
-                        cacheControl: '3600',
-                        upsert: false
-                    });
+                if (!startResponse.ok) {
+                    const text = await startResponse.text();
+                    throw new Error(`Backend rejected file slot: ${startResponse.status} ${text}`);
+                }
 
-                if (error) throw error;
+                const startData = await startResponse.json();
+                const resourceId = startData.resource_id;
+                const pathTopicId = startData.topic_id || topicId;
+                const pathBranchId = startData.branch_id || branchId;
 
-                const { data: urlData } = supabase.storage
-                    .from(SUPABASE_BUCKET_NAME)
-                    .getPublicUrl(filePath);
+                if (!resourceId) throw new Error("Missing 'resource_id' from backend creation response.");
 
-                const newFileObj = {
-                    id: Date.now() + Math.random(), 
+                // SQL Commit persistence buffer
+                await new Promise(resolve => setTimeout(resolve, 800));
+
+                const safeFileName = `${resourceId}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+                const uploadPath = `${userId}/${pathTopicId}/${pathBranchId}/${safeFileName}`;
+                const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://zywzqewllxdlvzixpgvs.supabase.co";
+                const uploadUrl = `${supabaseUrl}/storage/v1/object/${encodeURIComponent(SUPABASE_BUCKET_NAME)}/${encodeURIComponent(uploadPath)}`;
+
+                const uploadHeaders = new Headers();
+                uploadHeaders.set("Authorization", `Bearer ${storedJwt}`);
+                uploadHeaders.set("x-upsert", "false");
+                if (file.type) uploadHeaders.set("Content-Type", file.type);
+
+                const storageResponse = await fetch(uploadUrl, {
+                    method: "POST",
+                    headers: uploadHeaders,
+                    body: file,
+                });
+
+                if (!storageResponse.ok) {
+                    const text = await storageResponse.text();
+                    throw new Error(`Storage upload failed: ${storageResponse.status} ${text}`);
+                }
+
+                const publicUrl = `${supabaseUrl}/storage/v1/object/public/${SUPABASE_BUCKET_NAME}/${uploadPath}`;
+
+                uploadedFiles.push({
+                    id: resourceId,
                     name: file.name,
-                    url: urlData.publicUrl
-                };
-
-                uploadedFiles.push(newFileObj);
-
-                // Note: Ensure your backend endpoint is called here if it needs to know about the file
+                    url: publicUrl
+                });
             }
 
             setTopics(topics.map(topic => {
@@ -238,8 +319,10 @@ function Topic() {
             }));
             
         } catch (error) {
-            console.error("Error uploading directly to Supabase:", error);
-            alert("Failed to upload file to storage.");
+            console.error("Upload failure:", error);
+            alert(`Upload aborted: ${error.message}`);
+        } finally {
+            setUploadingBranchId(null);
         }
     };
 
@@ -267,13 +350,32 @@ function Topic() {
         }
     };
 
+    // ==========================================
+    // FAILSAFE WORKSPACE NAVIGATOR
+    // ==========================================
     const handleOpenWorkspace = (topic, branch) => {
         const topicSlug = topic.title.replace(/\s+/g, '-');
         const branchSlug = branch.title.replace(/\s+/g, '-');
         
-        // CRITICAL UPDATE: Passing branchId in the state object
+        // Sanitize every file passed to workspace state to guarantee an absolute Supabase link
+        const sanitizedFiles = (branch.files || []).map(file => {
+            let safeUrl = file.url;
+            
+            // If Postgres returned url: null or a relative ID, forcefully compute its CDN address
+            if (!safeUrl || safeUrl === file.id || !safeUrl.startsWith('http')) {
+                const storedJwt = localStorage.getItem("user_jwt");
+                const userId = getUserIdFromJwt(storedJwt);
+                const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://zywzqewllxdlvzixpgvs.supabase.co";
+                const cleanName = file.name ? file.name.replace(/[^a-zA-Z0-9.-]/g, "_") : "";
+                
+                safeUrl = `${supabaseUrl}/storage/v1/object/public/${SUPABASE_BUCKET_NAME}/${userId}/${topic.id}/${branch.id}/${file.id}-${cleanName}`;
+            }
+
+            return { ...file, url: safeUrl };
+        });
+
         navigate(`/workspace/${topicSlug}/${branchSlug}`, { 
-            state: { files: branch.files, branchName: branch.title, branchId: branch.id } 
+            state: { files: sanitizedFiles, branchName: branch.title, branchId: branch.id, topicId: topic.id } 
         });
     };
 
@@ -403,7 +505,10 @@ function Topic() {
                                                             </li>
                                                         ))}
                                                     </ul>
-                                                    <FileDropZone onFilesAdded={(files) => handleAddFilesToBranch(topic.id, branch.id, files)} />
+                                                    <FileDropZone 
+                                                        onFilesAdded={(files) => handleAddFilesToBranch(topic.id, branch.id, files)} 
+                                                        isUploading={uploadingBranchId === branch.id}
+                                                    />
                                                     <button className="generate-button" onClick={() => handleOpenWorkspace(topic, branch)}>Open Workspace</button>
                                                 </div>
                                             ))
@@ -415,6 +520,7 @@ function Topic() {
                     )}
                 </div>
 
+                {/* Modals remain standard */}
                 {isTopicModalOpen && (
                     <div className="modal-overlay">
                         <div className="modal-card">
@@ -516,7 +622,5 @@ function Topic() {
                 )}            
             </div>
         </div>
-    )
+    );
 }
-
-export default Topic;

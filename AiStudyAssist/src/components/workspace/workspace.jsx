@@ -14,12 +14,37 @@ import {
     ArrowLeft,
     PanelLeftClose,
     PanelLeft,
-    Loader2
+    Loader2,
+    AlertCircle
 } from 'lucide-react';
 import './workspace.css';
 import AiPdfViewer from './aiPdfViewer'; 
 import Header from '../layout/Header'; 
 import { API_START_URL, SUPABASE_BUCKET_URL } from '../../config';
+
+// --- JWT Helper to Extract User ID ---
+function parseJwtPayload(token) {
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(
+            atob(base64)
+                .split('')
+                .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                .join('')
+        );
+        return JSON.parse(jsonPayload);
+    } catch {
+        console.error("Failed to parse JWT");
+        return null;
+    }
+}
+
+function getUserIdFromJwt(token) {
+    if (!token) return null;
+    const payload = parseJwtPayload(token);
+    return payload?.sub || null;
+}
 
 export default function Workspace() {
     const { topicName, branchName } = useParams(); 
@@ -29,7 +54,8 @@ export default function Workspace() {
     const passedFiles = location.state?.files || [];
     const formattedTopicName = topicName?.replace('-', ' ');
     const actualBranchName = location.state?.branchName || branchName?.replace('-', ' ') || "Branch";
-    const branchId = location.state?.branchId; 
+    const branchId = location.state?.branchId;
+    const topicId = location.state?.topicId; 
 
     // --- APP STATES ---
     const [files, setFiles] = useState([]);
@@ -84,24 +110,45 @@ export default function Workspace() {
                 if (!response.ok) throw new Error("Failed to fetch branch resources");
                 
                 const data = await response.json();
+                console.log("Backend Response Data:", data);
+                
+                // Extract userId from JWT for URL construction
+                const userId = getUserIdFromJwt(userJwt);
+                console.log("Extracted userId from JWT:", userId);
                 
                 const formattedFiles = data.map(res => {
-                    // FIX: Attempt multiple properties to find the real file name.
-                    // Prioritize name, then title, then extract from URL, then fallback.
-                    let extractedName = res.name || res.title || res.fileName;
+                    const resourceName = res.title || res.name || res.fileName || "Unnamed Document";
+                    const resourceId = res.id;
                     
-                    if (!extractedName && res.url) {
-                        extractedName = res.url.split('/').pop();
-                    }
+                    // Get file extension
+                    const fileExtension = resourceName.split('.').pop()?.toLowerCase() || '';
+                    const isPdf = fileExtension === 'pdf';
+                    
+                    // Construct file URL using the pattern:
+                    // SUPABASE_BUCKET_URL + /userId/topicId/branchId/resourceId-resourceName
+                    const constructedUrl = topicId && userId 
+                        ? `${SUPABASE_BUCKET_URL}${userId}/${topicId}/${branchId}/${resourceId}-${resourceName.replace(/[^a-zA-Z0-9.-]/g, "_")}`
+                        : '';
+                    
+                    console.log("File Object:", { 
+                        id: resourceId, 
+                        name: resourceName,
+                        fileExtension,
+                        isPdf,
+                        constructedUrl 
+                    });
 
                     return {
-                        id: res.id,
-                        name: extractedName || "Unnamed Document", 
-                        url: getFullUrl(res.url || res.fileUrl || res.path),
+                        id: resourceId,
+                        name: resourceName, 
+                        url: constructedUrl,
+                        fileExtension,
+                        isPdf,
                         selectedForAi: false
                     };
                 });
 
+                console.log("Formatted Files:", formattedFiles);
                 setFiles(formattedFiles);
                 if (formattedFiles.length > 0) setActiveFileId(formattedFiles[0].id);
 
@@ -111,7 +158,7 @@ export default function Workspace() {
         };
 
         fetchBranchResources();
-    }, [branchId]);
+    }, [branchId, topicId]);
 
     useEffect(() => {
         setPageNumber(1);
@@ -124,6 +171,13 @@ export default function Workspace() {
         setFiles(files.map(file => 
             file.id === fileId ? { ...file, selectedForAi: !file.selectedForAi } : file
         ));
+    };
+
+    // Handle file click with debugging
+    const handleFileClick = (fileId) => {
+        console.log("File clicked, id:", fileId); // DEBUG
+        console.log("Available files:", files); // DEBUG
+        setActiveFileId(fileId);
     };
 
     const handleGenerateAiTask = (taskType) => {
@@ -235,8 +289,9 @@ export default function Workspace() {
                             {files.map(file => (
                                 <li 
                                     key={file.id} 
-                                    className={`file-item ${activeFileId === file.id ? 'active' : ''}`}
-                                    onClick={() => setActiveFileId(file.id)}
+                                    className={`file-item ${activeFileId === file.id ? 'active' : ''} ${!file.isPdf ? 'unsupported' : ''}`}
+                                    onClick={() => handleFileClick(file.id)}
+                                    title={!file.isPdf ? `${file.fileExtension.toUpperCase()} files cannot be displayed in the PDF viewer` : 'Click to view'}
                                 >
                                     <input 
                                         type="checkbox" 
@@ -250,6 +305,19 @@ export default function Workspace() {
                                     <span className="file-name">
                                         {file.name || "Unnamed Document"}
                                     </span>
+                                    {!file.isPdf && (
+                                        <span style={{ 
+                                            fontSize: '0.65rem', 
+                                            backgroundColor: '#fca5a5', 
+                                            color: '#7f1d1d', 
+                                            padding: '2px 6px', 
+                                            borderRadius: '3px', 
+                                            marginLeft: 'auto',
+                                            whiteSpace: 'nowrap'
+                                        }}>
+                                            {file.fileExtension.toUpperCase()}
+                                        </span>
+                                    )}
                                 </li>
                             ))}
                             {files.length === 0 && (
@@ -269,14 +337,34 @@ export default function Workspace() {
                     </button>
 
                     <div className="pdf-content-area">
-                        {activeFile?.url ? (
-                            <AiPdfViewer 
-                                fileUrl={activeFile.url} 
-                                pageNumber={pageNumber} 
-                                onDocumentLoadSuccess={handleDocumentLoadSuccess}
-                                error={pdfError}
-                                setError={setPdfError}
-                            />
+                        {activeFile ? (
+                            <>
+                                {activeFile.url ? (
+                                    activeFile.isPdf ? (
+                                        <AiPdfViewer 
+                                            fileUrl={activeFile.url} 
+                                            pageNumber={pageNumber} 
+                                            onDocumentLoadSuccess={handleDocumentLoadSuccess}
+                                            error={pdfError}
+                                            setError={setPdfError}
+                                        />
+                                    ) : (
+                                        <div className="mock-pdf-pages">
+                                            <AlertCircle size={48} style={{ opacity: 0.6, color: '#ef4444', marginBottom: '16px' }} />
+                                            <h3 style={{ color: '#ef4444' }}>Unsupported File Format</h3>
+                                            <p>This viewer only supports PDF files.</p>
+                                            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>File type: <strong>{activeFile.fileExtension.toUpperCase()}</strong></p>
+                                            <p style={{ fontSize: '0.85rem', marginTop: '16px', color: '#666' }}>Convert this file to PDF to view it here.</p>
+                                        </div>
+                                    )
+                                ) : (
+                                    <div className="mock-pdf-pages">
+                                        <AlertCircle size={48} style={{ opacity: 0.4, marginBottom: '16px' }} />
+                                        <p>File selected but URL is missing. Please check console for details.</p>
+                                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>File: {activeFile.name}</p>
+                                    </div>
+                                )}
+                            </>
                         ) : (
                             <div className="mock-pdf-pages">
                                 <p>Select a valid document from the sidebar.</p>
