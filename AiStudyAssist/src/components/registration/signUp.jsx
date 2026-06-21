@@ -94,7 +94,9 @@ function SignUp() {
     return(
         <div className="signUp-container">
             <div className="signUp-content">
-              
+              <img 
+                    src="./src/assets/Photos/logo2.png"  
+                    />
             <h1>Brainfy</h1>
             <p>Welcome to Brainfy. Create your account.</p>
                 

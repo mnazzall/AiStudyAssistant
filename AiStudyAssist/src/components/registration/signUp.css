@@ -21,6 +21,14 @@
     flex-direction: column;
 }
 
+.signUp-content img {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 16px;
+    align-self: center;
+}
+
+
 .signUp-content h1 {
     margin: 0 0 8px 0;
     font-size: 1.75rem;
@@ -72,8 +80,10 @@ form {
 
 .dob-container .placeholder-icon-signup {
     left: 12px;
-    top: 42px;
+    top: 48px;
     z-index: 1;
+    align-items: center;
+
 }
 
 input[type="date"] {

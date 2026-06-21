@@ -79,10 +79,13 @@ function SignIn() {
     return(
         <div className="signIn-container">
             <div className="signIn-content">
-              
+                
+                <img 
+                    src="./src/assets/Photos/logo2.png"  
+                    />
             <h1>Brainfy</h1>
+               
             <p>Welcome Back!</p>
-
             {errorMessage && <p style={{ color: "#ef4444", fontSize: "14px", marginBottom: "16px" }}>{errorMessage}</p>}
                
             <form onSubmit={handleSubmit}>
