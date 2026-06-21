@@ -1,4 +1,3 @@
-// src/components/topics/Topic.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -15,9 +14,8 @@ import {
 import SideBar from "../layout/SideBar";
 import Header from "../layout/Header";
 import './topic.css';
-import { API_START_URL, SUPABASE_BUCKET_NAME } from '../../config'; 
+import { API_START_URL, SUPABASE_BUCKET_NAME } from '../../config';
 
-// --- JWT Helper Functions ---
 function parseJwtPayload(token) {
     if (!token) return null;
     try {
@@ -45,7 +43,6 @@ function getUserIdFromJwt(token) {
     );
 }
 
-// --- Drag & Drop Component ---
 const FileDropZone = ({ onFilesAdded, isUploading }) => {
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef(null);
@@ -73,13 +70,13 @@ const FileDropZone = ({ onFilesAdded, isUploading }) => {
             <input type="file" multiple ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} disabled={isUploading} />
             <div style={{ pointerEvents: 'none' }}>
                 {isUploading ? (
-                    <Loader2 size={24} className="spinner" style={{ margin: '0 auto 8px', color: '#0ea5e9' }} />
+                    <Loader2 size={24} className="spinner" style={{ margin: '0 auto 8px', color: 'var(--primary)' }} />
                 ) : (
-                    <CloudUpload size={24} style={{ margin: '0 auto 8px', color: '#718096' }} />
+                    <CloudUpload size={24} style={{ margin: '0 auto 8px', color: 'var(--text-muted)' }} />
                 )}
                 <p>
                     {isUploading ? 'Registering & uploading securely...' : (
-                        <>Drag & drop files here, or <span className="browse-link" style={{ pointerEvents: 'auto', cursor: 'pointer', color: '#0ea5e9', textDecoration: 'underline' }} onClick={handleBrowseClick}>browse</span></>
+                        <>Drag & drop files here, or <span className="browse-link" style={{ pointerEvents: 'auto', cursor: 'pointer', color: 'var(--primary)', textDecoration: 'underline' }} onClick={handleBrowseClick}>browse</span></>
                     )}
                 </p>
             </div>
@@ -94,7 +91,6 @@ export default function Topic() {
     const [isLoading, setIsLoading] = useState(true);
     const [uploadingBranchId, setUploadingBranchId] = useState(null);
     
-    // Modal States
     const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
     const [newTopicData, setNewTopicData] = useState({ title: "", description: "" });
     const [isSubmittingTopic, setIsSubmittingTopic] = useState(false);
@@ -142,7 +138,7 @@ export default function Topic() {
                 icon: BookOpen,
                 isExpanded: false,
                 branches: [],
-                branchesLoaded: false 
+                branchesLoaded: false
             }));
             
             setTopics(formattedTopics);
@@ -229,9 +225,6 @@ export default function Topic() {
         }
     };
 
-    // ==========================================
-    // TWO-STAGE SEQUENTIAL UPLOAD LOGIC
-    // ==========================================
     const handleAddFilesToBranch = async (topicId, branchId, newFiles) => {
         const storedJwt = localStorage.getItem("user_jwt");
         if (!storedJwt) return alert("Authentication token missing. Please log in.");
@@ -270,7 +263,6 @@ export default function Topic() {
 
                 if (!resourceId) throw new Error("Missing 'resource_id' from backend creation response.");
 
-                // SQL Commit persistence buffer
                 await new Promise(resolve => setTimeout(resolve, 800));
 
                 const safeFileName = `${resourceId}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
@@ -350,24 +342,19 @@ export default function Topic() {
         }
     };
 
-    // ==========================================
-    // FAILSAFE WORKSPACE NAVIGATOR
-    // ==========================================
     const handleOpenWorkspace = (topic, branch) => {
         const topicSlug = topic.title.replace(/\s+/g, '-');
         const branchSlug = branch.title.replace(/\s+/g, '-');
         
-        // Sanitize every file passed to workspace state to guarantee an absolute Supabase link
         const sanitizedFiles = (branch.files || []).map(file => {
             let safeUrl = file.url;
             
-            // If Postgres returned url: null or a relative ID, forcefully compute its CDN address
             if (!safeUrl || safeUrl === file.id || !safeUrl.startsWith('http')) {
                 const storedJwt = localStorage.getItem("user_jwt");
                 const userId = getUserIdFromJwt(storedJwt);
                 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://zywzqewllxdlvzixpgvs.supabase.co";
                 const cleanName = file.name ? file.name.replace(/[^a-zA-Z0-9.-]/g, "_") : "";
-                
+
                 safeUrl = `${supabaseUrl}/storage/v1/object/public/${SUPABASE_BUCKET_NAME}/${userId}/${topic.id}/${branch.id}/${file.id}-${cleanName}`;
             }
 
@@ -452,7 +439,7 @@ export default function Topic() {
                         </div>
                     ) : topics.length === 0 ? (
                         <div className="empty-state">
-                            <BookOpen size={48} color="#cbd5e1" />
+                            <BookOpen size={48} style={{ color: 'var(--secondary)' }} />
                             <h3>No topics yet</h3>
                             <p>Create your first topic to start organizing your study materials.</p>
                             <button className="add-topic-button" onClick={() => setIsTopicModalOpen(true)}>Create Topic</button>
@@ -520,7 +507,6 @@ export default function Topic() {
                     )}
                 </div>
 
-                {/* Modals remain standard */}
                 {isTopicModalOpen && (
                     <div className="modal-overlay">
                         <div className="modal-card">

@@ -26,10 +26,10 @@ const SideBar = () => {
     <div className="sidebar">   
       <div className="sidebar-logo">
         <img 
-          src="./src/assets/Photos/logo.png" 
+          src="./src/assets/Photos/logo2.png" 
           className="logo-icon" 
         />
-        <span className="logo-text">Aura Study</span>
+        <span className="logo-text">Brainfy</span>
       </div>
       <div className="sidebar-nav">
         {navLinks.map((link) => {

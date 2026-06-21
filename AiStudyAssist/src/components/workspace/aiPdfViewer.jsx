@@ -16,12 +16,9 @@ export default function AiPdfViewer({ fileUrl, file, url, pageNumber, onDocument
   const [currPage, setCurrPage] = useState(pageNumber || 1);
   const [scale, setScale] = useState(1.2);
 
-  // Extract raw URL string from whichever prop the workspace passed down
   const targetUrl = fileUrl || url || (typeof file === 'object' ? (file?.url || file?.fileUrl || file?.file_url) : file);
 
   useEffect(() => { 
-    console.log("AiPdfViewer Props - fileUrl:", fileUrl, "url:", url, "file:", file); // DEBUG
-    console.log("Final targetUrl:", targetUrl); // DEBUG
     setCurrPage(pageNumber || 1);
   }, [pageNumber, fileUrl, url, file]);
 
@@ -39,8 +36,6 @@ export default function AiPdfViewer({ fileUrl, file, url, pageNumber, onDocument
           throw new Error(`Document link is incomplete. Received raw ID: ${targetUrl}`);
         }
 
-        // CRITICAL FIX: Omit 'Authorization' header entirely for public Supabase storage.
-        // Attaching a Spring Boot JWT causes Supabase Kong gateway to block access with a 401.
         const response = await fetch(targetUrl, {
           headers: {
             'ngrok-skip-browser-warning': 'true'
@@ -91,22 +86,21 @@ export default function AiPdfViewer({ fileUrl, file, url, pageNumber, onDocument
   }
 
   if (!targetUrl) return (
-    <div className="pdf-loading-container" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-      <FileText size={48} style={{ opacity: 0.4 }} />
+    <div className="pdf-loading-container pdf-loading-placeholder">
+      <FileText size={48} className="pdf-icon-low-opacity" />
       <p>Select a document from the left sidebar to view it here.</p>
     </div>
   );
 
-  // Check if file is a PDF
   const isPdf = targetUrl.toLowerCase().endsWith('.pdf');
   if (!isPdf) {
     return (
-      <div className="pdf-loading-container" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-        <AlertCircle size={48} style={{ opacity: 0.6, color: '#ef4444', marginBottom: '16px' }} />
-        <h3 style={{ color: '#ef4444' }}>Unsupported File Format</h3>
-        <p style={{ marginBottom: '12px' }}>This viewer only supports PDF files.</p>
-        <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>File type detected: <strong>{targetUrl.split('.').pop().toUpperCase()}</strong></p>
-        <p style={{ fontSize: '0.85rem', marginTop: '16px', color: '#666' }}>Please convert PowerPoint, Word, or other document formats to PDF to view them here.</p>
+      <div className="pdf-loading-container pdf-loading-placeholder">
+        <AlertCircle size={48} className="pdf-icon-error-opacity" />
+        <h3 className="pdf-unsupported-title">Unsupported File Format</h3>
+        <p className="pdf-unsupported-message">This viewer only supports PDF files.</p>
+        <p className="pdf-file-type-text">File type detected: <strong>{targetUrl.split('.').pop().toUpperCase()}</strong></p>
+        <p className="pdf-conversion-hint">Please convert PowerPoint, Word, or other document formats to PDF to view them here.</p>
       </div>
     );
   }
@@ -114,36 +108,36 @@ export default function AiPdfViewer({ fileUrl, file, url, pageNumber, onDocument
   const hasError = error || internalError !== null;
 
   return (
-    <div className="pdf-viewer-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', height: '100%' }}>
+    <div className="pdf-viewer-container">
       {hasError ? (
         <div className="pdf-error-container">
           <AlertCircle size={48} className="pdf-error-icon" />
           <h3>Unable to display document</h3>
-          <p style={{ marginBottom: '12px', fontSize: '0.9rem' }}>{internalError || "Could not connect to document stream."}</p>
-          <div style={{ fontSize: '0.75rem', background: 'rgba(0,0,0,0.05)', padding: '6px', borderRadius: '4px', wordBreak: 'break-all', maxHeight: '100px', overflow: 'auto' }}>
+          <p className="pdf-error-message">{internalError || "Could not connect to document stream."}</p>
+          <div className="pdf-error-detail-box">
             <strong>URL:</strong> {targetUrl || "No URL provided"}
           </div>
-          <p style={{ fontSize: '0.8rem', color: '#666', marginTop: '8px' }}>Check browser console for detailed error logs.</p>
+          <p className="pdf-error-footer">Check browser console for detailed error logs.</p>
         </div>
       ) : (
         <>
           {pdfBlob && !isDownloading && (
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', background: 'var(--bg-secondary)', padding: '6px 16px', borderRadius: '20px', boxShadow: 'var(--shadow-sm)', marginBottom: '16px', border: '1px solid var(--border-light)', zIndex: 10 }}>
-              <button onClick={() => setCurrPage(p => Math.max(1, p - 1))} disabled={currPage <= 1} style={{ border: 'none', background: 'none', cursor: currPage <= 1 ? 'default' : 'pointer', opacity: currPage <= 1 ? 0.4 : 1 }}>
+            <div className="pdf-controls-bar">
+              <button onClick={() => setCurrPage(p => Math.max(1, p - 1))} disabled={currPage <= 1} className="pdf-control-button">
                 <ChevronLeft size={20} />
               </button>
-              <span style={{ fontSize: '0.9rem', fontWeight: '600', fontFamily: 'var(--font-family)' }}>Page {currPage} of {numPages || '-'}</span>
-              <button onClick={() => setCurrPage(p => Math.min(numPages || 1, p + 1))} disabled={currPage >= (numPages || 1)} style={{ border: 'none', background: 'none', cursor: currPage >= numPages ? 'default' : 'pointer', opacity: currPage >= numPages ? 0.4 : 1 }}>
+              <span className="pdf-page-counter">Page {currPage} of {numPages || '-'}</span>
+              <button onClick={() => setCurrPage(p => Math.min(numPages || 1, p + 1))} disabled={currPage >= (numPages || 1)} className="pdf-control-button">
                 <ChevronRight size={20} />
               </button>
-              <div style={{ height: '16px', width: '1px', background: 'var(--border-light)', margin: '0 4px' }} />
-              <button onClick={() => setScale(s => Math.max(0.6, s - 0.2))} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-strong)' }} title="Zoom Out"><ZoomOut size={18} /></button>
-              <span style={{ fontSize: '0.8rem', width: '40px', textAlign: 'center', fontWeight: '500', fontFamily: 'var(--font-family)' }}>{Math.round(scale * 100)}%</span>
-              <button onClick={() => setScale(s => Math.min(2.2, s + 0.2))} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-strong)' }} title="Zoom In"><ZoomIn size={18} /></button>
+              <div className="pdf-divider" />
+              <button onClick={() => setScale(s => Math.max(0.6, s - 0.2))} className="pdf-control-button" title="Zoom Out"><ZoomOut size={18} /></button>
+              <span className="pdf-zoom-display">{Math.round(scale * 100)}%</span>
+              <button onClick={() => setScale(s => Math.min(2.2, s + 0.2))} className="pdf-control-button" title="Zoom In"><ZoomIn size={18} /></button>
             </div>
           )}
 
-          <div style={{ flex: 1, width: '100%', overflow: 'auto', display: 'flex', justifyContent: 'center' }}>
+          <div className="pdf-content-wrapper">
             <Document 
               file={pdfBlob} 
               onLoadSuccess={handleLoadSuccess}

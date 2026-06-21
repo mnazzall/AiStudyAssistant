@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2, XCircle, ChevronRight, Award, RotateCcw, Loader2, Settings, PenTool } from 'lucide-react';
@@ -13,13 +14,13 @@ export default function Quiz() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [quizData, setQuizData] = useState(null);
 
-    const [difficulty, setDifficulty] = useState("INTERMEDIATE"); // Default uppercase
+    const [difficulty, setDifficulty] = useState("INTERMEDIATE");
     const [numOfQuestions, setNumOfQuestions] = useState(10);
     const [selectedFileId, setSelectedFileId] = useState(passedFiles.length > 0 ? passedFiles[0].id : "");
 
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [selectedOption, setSelectedOption] = useState(null);
-    const [essayAnswer, setEssayAnswer] = useState(''); // State for essay input
+    const [essayAnswer, setEssayAnswer] = useState('');
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [score, setScore] = useState(0);
     const [isFinished, setIsFinished] = useState(false);
@@ -39,7 +40,7 @@ export default function Quiz() {
                     'ngrok-skip-browser-warning': 'true'
                 },
                 body: JSON.stringify({
-                    difficulty: difficulty.toUpperCase(), // ENFORCED UPPERCASE
+                    difficulty: difficulty.toUpperCase(),
                     numOfQuestions: parseInt(numOfQuestions)
                 })
             });
@@ -69,7 +70,7 @@ export default function Quiz() {
         if (!isEssay && selectedOption === currentQuestion.correctOptionIndex) {
             setScore(prev => prev + 1);
         } else if (isEssay) {
-            setScore(prev => prev + 1); // Give point for completing essay
+            setScore(prev => prev + 1);
         }
     };
 
@@ -97,36 +98,61 @@ export default function Quiz() {
         return (
             <div className="quiz-container">
                 <header className="quiz-header">
-                    <button className="back-btn" onClick={() => navigate(-1)}><ArrowLeft size={16} /> Back</button>
+                    <button className="back-btn" onClick={() => navigate(-1)}>
+                        <ArrowLeft size={16} /> Back
+                    </button>
                     <h2>Quiz Configuration</h2>
-                    <div style={{width: '100px'}}></div>
+                    <div className="quiz-header-spacer"></div>
                 </header>
-                <main className="quiz-content-area" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <div className="results-card" style={{ maxWidth: '500px', width: '100%' }}>
-                        <Settings size={48} color="#0ea5e9" style={{ marginBottom: '16px' }} />
+
+                <main className="quiz-config-main">
+                    <div className="quiz-config-card">
+                        <Settings size={48} className="quiz-config-icon" />
                         <h2>Setup Your Quiz</h2>
-                        <form onSubmit={handleGenerateQuiz} style={{ display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left', marginTop: '24px' }}>
+                        
+                        <form onSubmit={handleGenerateQuiz} className="quiz-config-form">
                             <div className="form-group">
-                                <label style={{ fontWeight: '600' }}>Target Document</label>
-                                <select value={selectedFileId} onChange={(e) => setSelectedFileId(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 'var(--radius-sm)' }}>
-                                    {passedFiles.map(file => <option key={file.id} value={file.id}>{file.name}</option>)}
+                                <label className="quiz-config-label">Target Document</label>
+                                <select className="quiz-config-select" value={selectedFileId} onChange={(e) => setSelectedFileId(e.target.value)}>
+                                    {passedFiles.map(file => (
+                                        <option key={file.id} value={file.id}>{file.name}</option>
+                                    ))}
                                 </select>
                             </div>
+
                             <div className="form-group">
-                                <label style={{ fontWeight: '600' }}>Difficulty Level</label>
-                                <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 'var(--radius-sm)' }}>
+                                <label className="quiz-config-label">Difficulty Level</label>
+                                <select className="quiz-config-select" value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
                                     <option value="FOUNDATIONAL">Foundational</option>
                                     <option value="INTERMEDIATE">Intermediate</option>
                                     <option value="ADVANCED">Advanced</option>
                                 </select>
                             </div>
+
                             <div className="form-group">
-                                <label style={{ fontWeight: '600' }}>Questions ({numOfQuestions})</label>
-                                <input type="range" min="10" max="25" value={numOfQuestions} onChange={(e) => setNumOfQuestions(e.target.value)} style={{ width: '100%' }} />
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)' }}><span>10</span><span>25</span></div>
+                                <label className="quiz-config-label">Questions ({numOfQuestions})</label>
+                                <input 
+                                    type="range" 
+                                    min="10" 
+                                    max="25" 
+                                    value={numOfQuestions} 
+                                    onChange={(e) => setNumOfQuestions(e.target.value)} 
+                                    className="quiz-config-range" 
+                                />
+                                <div className="quiz-config-range-labels">
+                                    <span>10</span>
+                                    <span>25</span>
+                                </div>
                             </div>
-                            <button type="submit" className="submit-answer-btn" disabled={isGenerating}>
-                                {isGenerating ? <><Loader2 className="spinner" size={20} /> Generating...</> : 'Generate Quiz'}
+
+                            <button type="submit" className="submit-answer-btn quiz-config-submit-btn" disabled={isGenerating}>
+                                {isGenerating ? (
+                                    <>
+                                        <Loader2 className="spinner" size={20} /> Generating...
+                                    </>
+                                ) : (
+                                    'Generate Quiz'
+                                )}
                             </button>
                         </form>
                     </div>
@@ -140,22 +166,37 @@ export default function Quiz() {
         return (
             <div className="quiz-container">
                 <header className="quiz-header">
-                    <button className="back-btn" onClick={() => navigate(-1)}><ArrowLeft size={16} /> Exit Quiz</button>
+                    <button className="back-btn" onClick={() => navigate(-1)}>
+                        <ArrowLeft size={16} /> Exit Quiz
+                    </button>
                     <h2>{quizData.quizTitle}</h2>
-                    <div style={{width: '100px'}}></div>
+                    <div className="quiz-header-spacer"></div>
                 </header>
+
                 <div className="quiz-content-area">
                     <div className="results-card">
-                        <Award size={64} color="#0ea5e9" />
+                        <Award size={64} className="results-award-icon" />
                         <h2>Quiz Completed!</h2>
                         <p className="results-score">You scored <strong>{score}</strong> out of <strong>{totalQuestions}</strong></p>
+                        
                         <div className="progress-bar-container">
-                            <div className="progress-bar-fill" style={{ width: `${percentage}%`, backgroundColor: percentage >= 70 ? '#22c55e' : (percentage >= 40 ? '#eab308' : '#ef4444') }}></div>
+                            <div 
+                                className="progress-bar-fill" 
+                                style={{ 
+                                    width: `${percentage}%`, 
+                                    backgroundColor: percentage >= 70 ? '#22c55e' : (percentage >= 40 ? '#eab308' : '#ef4444') 
+                                }}
+                            ></div>
                         </div>
+
                         <p className="results-percentage">{percentage}% Accuracy</p>
                         <div className="results-actions">
-                            <button className="restart-btn" onClick={handleRestartQuiz}><RotateCcw size={18} /> Retry Quiz</button>
-                            <button className="return-btn" onClick={() => setIsConfiguring(true)}>Configure New Quiz</button>
+                            <button className="restart-btn" onClick={handleRestartQuiz}>
+                                <RotateCcw size={18} /> Retry Quiz
+                            </button>
+                            <button className="return-btn" onClick={() => setIsConfiguring(true)}>
+                                Configure New Quiz
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -168,7 +209,9 @@ export default function Quiz() {
     return (
         <div className="quiz-container">
             <header className="quiz-header">
-                <button className="back-btn" onClick={() => navigate(-1)}><ArrowLeft size={16} /> Workspace</button>
+                <button className="back-btn" onClick={() => navigate(-1)}>
+                    <ArrowLeft size={16} /> Workspace
+                </button>
                 <h2>{quizData.quizTitle}</h2>
                 <div className="question-counter">Question {currentQuestionIndex + 1} of {totalQuestions}</div>
             </header>
@@ -179,8 +222,14 @@ export default function Quiz() {
 
             <main className="quiz-content-area">
                 <div className="question-card">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', color: 'var(--text-muted)' }}>
-                        {isEssay ? <><PenTool size={18}/> <span>Essay Question</span></> : <span>Multiple Choice</span>}
+                    <div className="question-type-badge">
+                        {isEssay ? (
+                            <>
+                                <PenTool size={18} /> <span>Essay Question</span>
+                            </>
+                        ) : (
+                            <span>Multiple Choice</span>
+                        )}
                     </div>
                     
                     <h3 className="question-text">{currentQuestion.questionText}</h3>
@@ -188,11 +237,11 @@ export default function Quiz() {
                     <div className="options-container">
                         {isEssay ? (
                             <textarea 
+                                className="essay-textarea"
                                 value={essayAnswer}
                                 onChange={(e) => setEssayAnswer(e.target.value)}
                                 disabled={isSubmitted}
                                 placeholder="Type your full answer here..."
-                                style={{ width: '100%', minHeight: '180px', padding: '16px', borderRadius: 'var(--radius-md)', border: '2px solid var(--border-light)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-main)', fontSize: '1rem', resize: 'vertical', fontFamily: 'inherit' }}
                             />
                         ) : (
                             currentQuestion.options.map((option, index) => (
@@ -204,8 +253,8 @@ export default function Quiz() {
                                 >
                                     <span className="option-letter">{String.fromCharCode(65 + index)}</span>
                                     <span className="option-text">{option}</span>
-                                    {isSubmitted && index === currentQuestion.correctOptionIndex && <CheckCircle2 size={20} color="#22c55e" className="status-icon" />}
-                                    {isSubmitted && index === selectedOption && index !== currentQuestion.correctOptionIndex && <XCircle size={20} color="#ef4444" className="status-icon" />}
+                                    {isSubmitted && index === currentQuestion.correctOptionIndex && <CheckCircle2 size={20} className="status-icon success-icon" />}
+                                    {isSubmitted && index === selectedOption && index !== currentQuestion.correctOptionIndex && <XCircle size={20} className="status-icon danger-icon" />}
                                 </button>
                             ))
                         )}

@@ -4,7 +4,9 @@
     height: 100vh;
     font-family: var(--font-family);
     background-color: var(--primary-lighter);
+    overflow: hidden;
 }
+
 
 .fc-header {
     display: grid;
@@ -14,6 +16,7 @@
     height: 64px;
     background-color: var(--bg-secondary);
     border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
 }
 
 .fc-header .back-btn {
@@ -27,14 +30,16 @@
     cursor: pointer;
     color: var(--text-muted);
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     padding: 8px 12px;
     margin: 0;
     transition: var(--transition-fast);
+    font-family: var(--font-family);
 }
 
 .fc-header .back-btn:hover {
     background-color: var(--bg-tertiary);
+    color: var(--text-strong);
     border-radius: var(--radius-md);
 }
 
@@ -54,6 +59,11 @@
     background-color: var(--bg-tertiary);
     padding: 6px 12px;
     border-radius: var(--radius-full);
+    user-select: none;
+}
+
+.fc-header-spacer {
+    justify-self: end;
 }
 
 .fc-main {
@@ -63,15 +73,17 @@
     align-items: center;
     justify-content: center;
     padding: 40px 20px;
+    overflow-y: auto;
 }
 
 .fc-scene {
     width: 100%;
-    max-width: 600px;
-    height: 350px;
+    max-width: 640px;
+    height: 380px;
     perspective: 1000px;
     cursor: pointer;
     margin-bottom: 40px;
+    user-select: none;
 }
 
 .fc-card {
@@ -91,57 +103,69 @@
     width: 100%;
     height: 100%;
     backface-visibility: hidden;
-    background-color: var(--bg-secondary);
+    background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 40px;
+    padding: 50px 40px;
     text-align: center;
-    border: 1px solid var(--border-light);
+    border: 2px solid var(--primary-light);
     box-sizing: border-box;
+    overflow-y: auto; 
 }
 
 .fc-back {
     transform: rotateX(180deg);
-    background-color: var(--bg-tertiary);
-    border: 2px solid var(--primary-light);
+    background: linear-gradient(135deg, var(--bg-tertiary), var(--primary-lighter));
+    border: 2px solid var(--secondary);
 }
+
 
 .fc-label {
     position: absolute;
-    top: 24px;
+    top: 20px;
     left: 24px;
     font-size: 0.8rem;
     text-transform: uppercase;
     font-weight: 700;
-    color: var(--text-light);
+    color: var(--primary);
     letter-spacing: 1px;
 }
 
-.fc-front h3 {
-    font-size: 2.5rem;
-    color: var(--text-strong);
-    margin: 0;
-    font-family: var(--font-family);
+.fc-back .fc-label {
+    color: var(--secondary);
 }
 
-.fc-back p {
-    font-size: 1.4rem;
+.fc-front-heading {
+    font-size: 2.2rem;
+    color: var(--text-strong);
+    margin: auto 0;
+    font-family: var(--font-family);
+    line-height: 1.3;
+}
+
+.fc-front-hint {
+    font-style: italic;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin: 16px 0 0 0;
+}
+
+.fc-back-heading {
+    font-size: 1.5rem;
     color: var(--text-main);
     line-height: 1.6;
-    margin: 0;
+    margin: auto 0;
     font-family: var(--font-family);
 }
 
-.fc-hint {
-    position: absolute;
-    bottom: 24px;
-    font-size: 0.9rem;
-    color: var(--text-light);
-    margin: 0;
+.fc-empty-notice {
+    color: var(--text-muted);
+    font-size: 1.05rem;
+    text-align: center;
 }
 
 .fc-controls {
@@ -152,50 +176,180 @@
 
 .fc-icon-btn {
     background: var(--bg-secondary);
-    border: 1px solid var(--border-light);
+    border: 2px solid var(--primary);
     border-radius: 50%;
     width: 48px;
     height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--text-light);
+    color: var(--primary);
     cursor: pointer;
-    box-shadow: var(--shadow-sm);
-    transition: var(--transition-fast);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s ease;
 }
 
 .fc-icon-btn:hover {
-    color: var(--secondary);
-    border-color: var(--secondary-light);
-    box-shadow: var(--shadow-md);
+    color: var(--bg-secondary);
+    background: var(--primary);
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);
+    transform: scale(1.1);
+}
+
+.fc-icon-btn:active {
+    transform: scale(0.95);
 }
 
 .fc-nav-group {
     display: flex;
     gap: 16px;
-    background: var(--bg-secondary);
-    padding: 8px;
+    background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+    padding: 10px 16px;
     border-radius: var(--radius-full);
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border-light);
 }
 
 .fc-nav-btn {
-    background: var(--bg-tertiary);
-    border: none;
+    background: var(--bg-secondary);
+    border: 2px solid var(--primary);
     border-radius: 50%;
     width: 56px;
     height: 56px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--text-strong);
+    color: var(--primary);
     cursor: pointer;
-    transition: var(--transition-fast);
+    transition: all 0.2s ease;
     font-weight: 600;
 }
 
 .fc-nav-btn:hover {
-    background: var(--border-light);
-    box-shadow: var(--shadow-sm);
+    background: var(--primary);
+    color: var(--bg-secondary);
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+.fc-nav-btn:active {
+    transform: scale(0.95);
+    background: var(--primary-hover);
+}
+
+.fc-config-main {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.fc-config-card {
+    background-color: var(--bg-secondary);
+    padding: 40px;
+    border-radius: var(--radius-lg);
+    max-width: 500px;
+    width: 100%;
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-md);
+    box-sizing: border-box;
+}
+
+.fc-config-icon {
+    display: block;
+    margin: 0 auto 16px auto;
+    color: var(--primary);
+}
+
+.fc-config-title {
+    text-align: center;
+    margin: 0 0 24px 0;
+    color: var(--text-strong);
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+.fc-config-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.fc-config-label {
+    font-weight: 600;
+    color: var(--text-main);
+    font-size: 0.95rem;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.fc-config-select {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-light);
+    background-color: var(--bg-tertiary);
+    color: var(--text-strong);
+    font-size: 0.95rem;
+    font-family: var(--font-family);
+    outline: none;
+    transition: var(--transition-fast);
+}
+
+.fc-config-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+.fc-config-range {
+    width: 100%;
+    accent-color: var(--primary);
+    cursor: pointer;
+}
+
+.fc-config-range-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-top: 4px;
+}
+
+.fc-config-submit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+    color: var(--bg-secondary);
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);
+    transition: all 0.2s ease;
+    font-family: var(--font-family);
+    margin-top: 8px;
+}
+
+.fc-config-submit-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(14, 165, 233, 0.4);
+    background: linear-gradient(135deg, var(--primary-hover), var(--text-strong));
+}
+
+.fc-config-submit-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.fc-config-submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
 }

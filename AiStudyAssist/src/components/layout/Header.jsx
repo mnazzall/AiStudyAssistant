@@ -11,16 +11,6 @@ const Header = ({ branchName }) => {
     const [userName, setUserName] = useState("");
     const dropdownRef = useRef(null);
 
-    const allTopics = [
-        "Organic Chemistry",
-        "Ancient History",
-        "Geography",
-        "Calculus",
-        "Literature",
-        "Physics",
-    ];
-
-    // Get user name from localStorage on mount
     useEffect(() => {
         const userData = localStorage.getItem("user_name");
         if (userData) {
@@ -28,7 +18,6 @@ const Header = ({ branchName }) => {
         }
     }, []);
 
-    // Close dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -42,7 +31,7 @@ const Header = ({ branchName }) => {
 
     const handleSearchChange = (e) => {
         setSearchQuery(e.target.value);
-    }
+    };
 
     const handleSignOut = () => {
         localStorage.removeItem("user_jwt");
@@ -59,16 +48,14 @@ const Header = ({ branchName }) => {
         return "U";
     };
 
-    const filteredTopics = allTopics.filter((topic) =>
-        topic.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    
 
     return (
         <header className="header">
             
-            {/* NEW: Display the Branch Name on the far left */}
+           
             {branchName && (
-                <div style={{ marginRight: 'auto', paddingRight: '20px', fontWeight: 'bold', fontSize: '1.2rem', color: '#1e293b', display: 'flex', alignItems: 'center' }}>
+                <div style={{ marginRight: 'auto', paddingRight: '20px', fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--text-strong)', display: 'flex', alignItems: 'center' }}>
                     {branchName}
                 </div>
             )}

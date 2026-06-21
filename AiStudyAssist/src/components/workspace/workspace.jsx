@@ -1,37 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { 
-    FileText, 
-    CheckSquare, 
-    Copy, 
-    Send, 
-    ChevronDown, 
-    ChevronLeft, 
-    ChevronRight, 
-    SkipBack, 
-    SkipForward, 
-    Maximize,
-    ArrowLeft,
-    PanelLeftClose,
-    PanelLeft,
-    Loader2,
-    AlertCircle
+    FileText, CheckSquare, Copy, Send, ChevronDown, ChevronLeft, 
+    ChevronRight, SkipBack, SkipForward, Maximize, ArrowLeft,
+    PanelLeftClose, PanelLeft, Loader2, AlertCircle
 } from 'lucide-react';
 import './workspace.css';
-import AiPdfViewer from './aiPdfViewer'; 
-import Header from '../layout/Header'; 
+import AiPdfViewer from './AiPdfViewer';
+import Header from '../layout/Header';
 import { API_START_URL, SUPABASE_BUCKET_URL } from '../../config';
 
-// --- JWT Helper to Extract User ID ---
 function parseJwtPayload(token) {
     try {
         const base64Url = token.split('.')[1];
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
         const jsonPayload = decodeURIComponent(
-            atob(base64)
-                .split('')
-                .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-                .join('')
+            atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
         );
         return JSON.parse(jsonPayload);
     } catch {
@@ -55,20 +39,17 @@ export default function Workspace() {
     const formattedTopicName = topicName?.replace('-', ' ');
     const actualBranchName = location.state?.branchName || branchName?.replace('-', ' ') || "Branch";
     const branchId = location.state?.branchId;
-    const topicId = location.state?.topicId; 
+    const topicId = location.state?.topicId;
 
-    // --- APP STATES ---
     const [files, setFiles] = useState([]);
     const [activeFileId, setActiveFileId] = useState(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     
-    // --- PDF STATES ---
     const [numPages, setNumPages] = useState(null);
     const [pageNumber, setPageNumber] = useState(1);
     const [pdfError, setPdfError] = useState(false);
     const pdfPanelRef = useRef(null);
 
-    // --- CHAT STATES ---
     const [chatInput, setChatInput] = useState('');
     const [messages, setMessages] = useState([
         { role: 'ai', answer: "Hi! Select a document from the left and ask me anything about it.", details: [], followUpConcept: null }
@@ -76,13 +57,6 @@ export default function Workspace() {
     const [isChatLoading, setIsChatLoading] = useState(false);
     const chatEndRef = useRef(null);
 
-    const getFullUrl = (urlOrPath) => {
-        if (!urlOrPath) return '';
-        if (urlOrPath.startsWith('http')) return urlOrPath;
-        return `${SUPABASE_BUCKET_URL}${urlOrPath}`;
-    };
-
-    // Auto-scroll to bottom of chat
     const scrollToBottom = () => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
@@ -91,9 +65,6 @@ export default function Workspace() {
         scrollToBottom();
     }, [messages, isChatLoading]);
 
-    // ==========================================
-    // BACKEND INTEGRATION: Fetch Branch Resources
-    // ==========================================
     useEffect(() => {
         const fetchBranchResources = async () => {
             if (!branchId) return;
@@ -110,33 +81,17 @@ export default function Workspace() {
                 if (!response.ok) throw new Error("Failed to fetch branch resources");
                 
                 const data = await response.json();
-                console.log("Backend Response Data:", data);
-                
-                // Extract userId from JWT for URL construction
                 const userId = getUserIdFromJwt(userJwt);
-                console.log("Extracted userId from JWT:", userId);
                 
                 const formattedFiles = data.map(res => {
                     const resourceName = res.title || res.name || res.fileName || "Unnamed Document";
                     const resourceId = res.id;
-                    
-                    // Get file extension
                     const fileExtension = resourceName.split('.').pop()?.toLowerCase() || '';
                     const isPdf = fileExtension === 'pdf';
                     
-                    // Construct file URL using the pattern:
-                    // SUPABASE_BUCKET_URL + /userId/topicId/branchId/resourceId-resourceName
                     const constructedUrl = topicId && userId 
                         ? `${SUPABASE_BUCKET_URL}${userId}/${topicId}/${branchId}/${resourceId}-${resourceName.replace(/[^a-zA-Z0-9.-]/g, "_")}`
                         : '';
-                    
-                    console.log("File Object:", { 
-                        id: resourceId, 
-                        name: resourceName,
-                        fileExtension,
-                        isPdf,
-                        constructedUrl 
-                    });
 
                     return {
                         id: resourceId,
@@ -148,7 +103,6 @@ export default function Workspace() {
                     };
                 });
 
-                console.log("Formatted Files:", formattedFiles);
                 setFiles(formattedFiles);
                 if (formattedFiles.length > 0) setActiveFileId(formattedFiles[0].id);
 
@@ -173,10 +127,7 @@ export default function Workspace() {
         ));
     };
 
-    // Handle file click with debugging
     const handleFileClick = (fileId) => {
-        console.log("File clicked, id:", fileId); // DEBUG
-        console.log("Available files:", files); // DEBUG
         setActiveFileId(fileId);
     };
 
@@ -192,22 +143,15 @@ export default function Workspace() {
         if (taskType === 'Flashcards') navigate('/flashcards', { state: { selectedFiles } });
     };
 
-    // ==========================================
-    // CHAT API INTEGRATION
-    // ==========================================
     const handleSendMessage = async (e) => {
         e?.preventDefault();
         
         if (!chatInput.trim()) return;
-        if (!activeFileId) {
-            alert("Please select a document to chat about.");
-            return;
-        }
+        if (!activeFileId) return alert("Please select a document to chat about.");
 
         const userMessage = chatInput.trim();
         setChatInput('');
         
-        // Add user message to UI immediately
         setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
         setIsChatLoading(true);
 
@@ -230,7 +174,6 @@ export default function Workspace() {
 
             const data = await response.json();
             
-            // Add the AI response directly mapping your schema
             setMessages(prev => [...prev, {
                 role: 'ai',
                 answer: data.answer,
@@ -260,7 +203,7 @@ export default function Workspace() {
     const toggleFullScreen = () => {
         if (!document.fullscreenElement) {
             pdfPanelRef.current?.requestFullscreen().catch(err => {
-                console.error(`Error attempting to enable fullscreen: ${err.message}`);
+                console.error(`Fullscreen error: ${err.message}`);
             });
         } else {
             document.exitFullscreen();
@@ -306,15 +249,7 @@ export default function Workspace() {
                                         {file.name || "Unnamed Document"}
                                     </span>
                                     {!file.isPdf && (
-                                        <span style={{ 
-                                            fontSize: '0.65rem', 
-                                            backgroundColor: '#fca5a5', 
-                                            color: '#7f1d1d', 
-                                            padding: '2px 6px', 
-                                            borderRadius: '3px', 
-                                            marginLeft: 'auto',
-                                            whiteSpace: 'nowrap'
-                                        }}>
+                                        <span className="file-extension-badge">
                                             {file.fileExtension.toUpperCase()}
                                         </span>
                                     )}
@@ -350,18 +285,18 @@ export default function Workspace() {
                                         />
                                     ) : (
                                         <div className="mock-pdf-pages">
-                                            <AlertCircle size={48} style={{ opacity: 0.6, color: '#ef4444', marginBottom: '16px' }} />
-                                            <h3 style={{ color: '#ef4444' }}>Unsupported File Format</h3>
+                                            <AlertCircle size={48} className="mock-error-icon" />
+                                            <h3 className="mock-error-title">Unsupported File Format</h3>
                                             <p>This viewer only supports PDF files.</p>
-                                            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>File type: <strong>{activeFile.fileExtension.toUpperCase()}</strong></p>
-                                            <p style={{ fontSize: '0.85rem', marginTop: '16px', color: '#666' }}>Convert this file to PDF to view it here.</p>
+                                            <p className="mock-file-type">File type: <strong>{activeFile.fileExtension.toUpperCase()}</strong></p>
+                                            <p className="mock-conversion-hint">Convert this file to PDF to view it here.</p>
                                         </div>
                                     )
                                 ) : (
                                     <div className="mock-pdf-pages">
-                                        <AlertCircle size={48} style={{ opacity: 0.4, marginBottom: '16px' }} />
+                                        <AlertCircle size={48} className="mock-missing-icon" />
                                         <p>File selected but URL is missing. Please check console for details.</p>
-                                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>File: {activeFile.name}</p>
+                                        <p className="mock-missing-filename">File: {activeFile.name}</p>
                                     </div>
                                 )}
                             </>
@@ -392,7 +327,7 @@ export default function Workspace() {
                 </div>
 
                 <aside className="chat-sidebar">
-                    <h2 className="sidebar-title">Aura AI Tutor Chat</h2>
+                    <h2 className="sidebar-title">Brainfy AI Chat</h2>
                     
                     <div className="ai-tools-grid">
                         <button className="ai-tool-btn tool-summary" onClick={() => handleGenerateAiTask('Summary')}>
@@ -412,10 +347,10 @@ export default function Workspace() {
                     <div className="chat-interface">
                         <div className="chat-header">
                             <div className="chat-header-title">
-                                <span className="logo-icon-small">A</span>
-                                <h3>Aura AI</h3>
+                                <span className="logo-icon-small">B</span>
+                                <h3>Brainfy AI</h3>
                             </div>
-                            <ChevronDown size={16} color="#64748b" />
+                            <ChevronDown size={16} className="chat-header-chevron" />
                         </div>
                         
                         <div className="messages-area">
@@ -425,28 +360,26 @@ export default function Workspace() {
                                         {msg.role === 'user' ? 'U' : 'A'}
                                     </div>
                                     <div className="message-content">
-                                        <h4>{msg.role === 'user' ? 'You' : 'Aura AI'}</h4>
+                                        <h4>{msg.role === 'user' ? 'You' : 'Brainfy AI'}</h4>
                                         
-                                        {/* User Text */}
                                         {msg.role === 'user' && <p>{msg.content}</p>}
                                         
-                                        {/* AI Response Schema */}
                                         {msg.role === 'ai' && (
                                             <div className="ai-structured-response">
-                                                <p style={{ whiteSpace: 'pre-wrap', marginBottom: '8px' }}>{msg.answer}</p>
+                                                <p className="ai-answer-text">{msg.answer}</p>
                                                 
                                                 {msg.details && msg.details.length > 0 && (
-                                                    <ul style={{ paddingLeft: '20px', marginBottom: '12px', color: 'var(--text-muted)' }}>
+                                                    <ul className="ai-details-list">
                                                         {msg.details.map((detail, dIdx) => (
-                                                            <li key={dIdx} style={{ marginBottom: '4px' }}>{detail}</li>
+                                                            <li key={dIdx} className="ai-detail-item">{detail}</li>
                                                         ))}
                                                     </ul>
                                                 )}
 
                                                 {msg.followUpConcept && (
-                                                    <div style={{ marginTop: '12px', padding: '8px', backgroundColor: 'var(--bg-main)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', fontSize: '0.85rem' }}>
-                                                        <strong style={{ color: 'var(--primary)' }}>Next up: </strong> 
-                                                        <span style={{ cursor: 'pointer' }} onClick={() => setChatInput(`Tell me about ${msg.followUpConcept}`)}>
+                                                    <div className="ai-followup-box">
+                                                        <strong className="ai-followup-label">Next up: </strong> 
+                                                        <span className="ai-followup-link" onClick={() => setChatInput(`Tell me about ${msg.followUpConcept}`)}>
                                                             {msg.followUpConcept}
                                                         </span>
                                                     </div>
@@ -461,30 +394,31 @@ export default function Workspace() {
                                 <div className="message ai-message">
                                     <div className="message-avatar ai-avatar">A</div>
                                     <div className="message-content">
-                                        <h4>Aura AI</h4>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)' }}>
+                                        <h4>Brainfy AI</h4>
+                                        <div className="analyzing-indicator">
                                             <Loader2 size={16} className="spinner" /> 
-                                            <span>Thinking...</span>
+                                            <span>Analyzing...</span>
                                         </div>
                                     </div>
                                 </div>
                             )}
-                            {/* Invisible div to scroll to */}
                             <div ref={chatEndRef} />
                         </div>
 
                         <form className="chat-input-container" onSubmit={handleSendMessage}>
-                            <input 
-                                type="text" 
-                                placeholder={activeFileId ? "Ask a question..." : "Select a document to chat"} 
-                                value={chatInput}
-                                onChange={(e) => setChatInput(e.target.value)}
-                                className="chat-input"
-                                disabled={!activeFileId || isChatLoading}
-                            />
-                            <button type="submit" className="send-btn" disabled={!activeFileId || isChatLoading || !chatInput.trim()}>
-                                <Send size={16} />
-                            </button>
+                            <div className="chat-input-box">
+                                <input 
+                                    type="text" 
+                                    placeholder={activeFileId ? "Ask a question..." : "Select a document to chat"} 
+                                    value={chatInput}
+                                    onChange={(e) => setChatInput(e.target.value)}
+                                    className="chat-input-field"
+                                    disabled={!activeFileId || isChatLoading}
+                                />
+                                <button type="submit" className="chat-send-btn" disabled={!activeFileId || isChatLoading || !chatInput.trim()}>
+                                    <Send size={16} />
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </aside>

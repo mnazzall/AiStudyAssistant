@@ -35,7 +35,7 @@ function MainLayout() {
         <div className="main-content">
             <Header />
             <div className="content">
-                <h1>Welcome to Aura Study Assistant</h1>
+                <h1>Welcome to Brainfy</h1>
                 <div className="features-section">
                 <h2 className="features-heading">Features Showcase</h2>
                 

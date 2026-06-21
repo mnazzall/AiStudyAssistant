@@ -34,14 +34,12 @@ function SignIn() {
                 return;
             }
 
-            // Extract the JWT and save it to localStorage
             if (data.session && data.session.access_token) {
                 const jwtToken = data.session.access_token;
                 
                 localStorage.setItem("user_jwt", jwtToken);
                 console.log("Sign in successful! JWT saved.");
                 
-                // Fetch user profile from backend to get first name
                 try {
                     const profileResponse = await fetch(`${API_START_URL}user/profile`, {
                         method: 'GET',
@@ -56,19 +54,16 @@ function SignIn() {
                         localStorage.setItem("user_name", userData.firstName || userData.email);
                         localStorage.setItem("user_email", userData.email);
                     } else {
-                        // Fallback: use email if profile fetch fails
                         localStorage.setItem("user_name", formData.email.split('@')[0]);
                         localStorage.setItem("user_email", formData.email);
                     }
                 } catch (profileError) {
                     console.error("Error fetching profile:", profileError);
-                    // Fallback: use email if fetch fails
                     localStorage.setItem("user_name", formData.email.split('@')[0]);
                     localStorage.setItem("user_email", formData.email);
                 }
                 
-                // Route to the app
-                navigate("/topics"); // Adjust to your main app route
+                navigate("/topics");
             } else {
                 setErrorMessage("Authentication failed: No token received.");
             }
@@ -85,7 +80,7 @@ function SignIn() {
         <div className="signIn-container">
             <div className="signIn-content">
               
-            <h1>Aura Study</h1>
+            <h1>Brainfy</h1>
             <p>Welcome Back!</p>
 
             {errorMessage && <p style={{ color: "#ef4444", fontSize: "14px", marginBottom: "16px" }}>{errorMessage}</p>}

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { User, Calendar, Mail, Lock, EyeOff, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../supabaseClient";
-import { API_START_URL } from "../../config"; // Make sure this path is correct based on your project structure
+import { API_START_URL } from "../../config";
 import './signUp.css';
 
 function SignUp() {
@@ -26,7 +26,6 @@ function SignUp() {
         setErrorMessage("");
 
         try {
-            // 1. Create the user in Supabase Auth
             const { data, error } = await supabase.auth.signUp({
                 email: formData.email,
                 password: formData.password,
@@ -44,7 +43,6 @@ function SignUp() {
                 return;
             }
 
-            // 2. Extract JWT
             if (data.session && data.session.access_token) {
                 const jwtToken = data.session.access_token;
                 localStorage.setItem("user_jwt", jwtToken);
@@ -53,28 +51,24 @@ function SignUp() {
                 
                 console.log("Signup successful! JWT and user data saved.");
 
-                // 3. Sync the new user with your Spring Boot backend
                 try {
                     const syncResponse = await fetch(`${API_START_URL}users/sync`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${jwtToken}`, // Your JWT goes here
+                            'Authorization': `Bearer ${jwtToken}`,
                             'ngrok-skip-browser-warning': 'true'
                         },
-                        // Send any data your backend database needs to store
                         body: JSON.stringify({
                             email: formData.email,
                             firstName: formData.firstName,
                             lastName: formData.lastName,
                             dob: formData.dob,
-                            supabaseId: data.user.id // Good practice to link your DB to Supabase's unique ID
+                            supabaseId: data.user.id
                         })
                     });
 
                     if (!syncResponse.ok) {
-                        // If the backend fails, log it. You might want to handle this differently 
-                        // depending on how critical the database sync is to user access.
                         console.error("Backend sync failed:", await syncResponse.text());
                     } else {
                         console.log("Successfully synced user to backend database.");
@@ -84,7 +78,6 @@ function SignUp() {
                     console.error("Network error during backend sync:", syncError);
                 }
                 
-                // Route directly to topics
                 navigate("/topics");
             } else {
                 setErrorMessage("Signup succeeded, but no token was returned. Check Supabase settings.");
@@ -102,8 +95,8 @@ function SignUp() {
         <div className="signUp-container">
             <div className="signUp-content">
               
-            <h1>Aura Study</h1>
-            <p>Welcome to Aura Study. Create your account.</p>
+            <h1>Brainfy</h1>
+            <p>Welcome to Brainfy. Create your account.</p>
                 
             {errorMessage && <p style={{ color: "#ef4444", fontSize: "14px", marginBottom: "16px" }}>{errorMessage}</p>}
                 

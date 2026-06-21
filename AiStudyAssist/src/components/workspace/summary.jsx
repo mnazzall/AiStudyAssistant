@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Copy, CheckCircle2, Settings, Loader2 } from 'lucide-react';
@@ -8,22 +9,16 @@ export default function Summary() {
     const navigate = useNavigate();
     const location = useLocation();
     
-    // Grab the files passed from the Workspace sidebar
     const passedFiles = location.state?.selectedFiles || [];
 
-    // --- APP STATES ---
     const [isConfiguring, setIsConfiguring] = useState(true);
     const [isGenerating, setIsGenerating] = useState(false);
     const [summaryData, setSummaryData] = useState(null);
     const [copied, setCopied] = useState(false);
 
-    // --- FORM STATES ---
-    const [coverage, setCoverage] = useState(0.7); // Default to General
+    const [coverage, setCoverage] = useState(0.7);
     const [selectedFileId, setSelectedFileId] = useState(passedFiles.length > 0 ? passedFiles[0].id : "");
 
-    // ==========================================
-    // API CALL: GENERATE SUMMARY
-    // ==========================================
     const handleGenerateSummary = async (e) => {
         e.preventDefault();
         
@@ -36,7 +31,6 @@ export default function Summary() {
         try {
             const userJwt = localStorage.getItem("user_jwt");
             
-            // Note: Using 'summaries' in the path. Adjust if your backend uses a different spelling.
             const response = await fetch(`${API_START_URL}summaries/${selectedFileId}`, {
                 method: 'POST',
                 headers: {
@@ -53,7 +47,7 @@ export default function Summary() {
 
             const data = await response.json();
             setSummaryData(data);
-            setIsConfiguring(false); // Move to the summary view
+            setIsConfiguring(false);
             
         } catch (error) {
             console.error("Error generating summary:", error);
@@ -63,9 +57,6 @@ export default function Summary() {
         }
     };
 
-    // ==========================================
-    // INTERACTION HANDLERS
-    // ==========================================
     const handleCopy = () => {
         if (!summaryData) return;
 
@@ -84,35 +75,32 @@ ${summaryData.keyTakeaways.map(point => `- ${point}`).join('\n')}
         setTimeout(() => setCopied(false), 2000);
     };
 
-    // ==========================================
-    // RENDER: CONFIGURATION SCREEN
-    // ==========================================
     if (isConfiguring) {
         return (
-            <div className="summary-page" style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: 'var(--bg-main)' }}>
-                <header className="sum-header" style={{ borderBottom: '1px solid var(--border-light)' }}>
+            <div className="summary-page">
+                <header className="sum-header">
                     <button className="back-btn" onClick={() => navigate(-1)}>
                         <ArrowLeft size={16} /> Back
                     </button>
                     <h2>Summary Configuration</h2>
-                    <div style={{width: '100px'}}></div>
+                    <div className="sum-header-spacer"></div>
                 </header>
 
-                <main style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
-                    <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '40px', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-md)', maxWidth: '500px', width: '100%', border: '1px solid var(--border-light)', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
-                            <Settings size={48} color="#0ea5e9" />
+                <main className="sum-config-main">
+                    <div className="sum-config-card">
+                        <div className="sum-config-icon-wrapper">
+                            <Settings size={48} className="sum-config-icon" />
                         </div>
-                        <h2 style={{ color: 'var(--text-main)', marginBottom: '8px' }}>Setup Summary</h2>
-                        <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>Adjust how the AI analyzes and condenses your document.</p>
+                        <h2 className="sum-config-title">Setup Summary</h2>
+                        <p className="sum-config-subtitle">Adjust how the AI analyzes and condenses your document.</p>
                         
-                        <form onSubmit={handleGenerateSummary} style={{ display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left' }}>
+                        <form onSubmit={handleGenerateSummary} className="sum-config-form">
                             <div className="form-group">
-                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-main)' }}>Target Document</label>
+                                <label className="sum-config-label">Target Document</label>
                                 <select 
+                                    className="sum-config-select"
                                     value={selectedFileId} 
                                     onChange={(e) => setSelectedFileId(e.target.value)}
-                                    style={{ width: '100%', padding: '10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-main)' }}
                                     required
                                 >
                                     <option value="" disabled>Select a file...</option>
@@ -121,16 +109,16 @@ ${summaryData.keyTakeaways.map(point => `- ${point}`).join('\n')}
                                     ))}
                                 </select>
                                 {passedFiles.length === 0 && (
-                                    <span style={{ fontSize: '0.8rem', color: 'var(--danger)', marginTop: '4px', display: 'block' }}>No files selected from the workspace.</span>
+                                    <span className="sum-config-error">No files selected from workspace.</span>
                                 )}
                             </div>
 
                             <div className="form-group">
-                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-main)' }}>Summary Coverage (Density)</label>
+                                <label className="sum-config-label">Summary Coverage (Density)</label>
                                 <select 
+                                    className="sum-config-select"
                                     value={coverage} 
                                     onChange={(e) => setCoverage(e.target.value)}
-                                    style={{ width: '100%', padding: '10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-main)' }}
                                 >
                                     <option value={0.5}>Shallow (Quick Overview)</option>
                                     <option value={0.7}>General (Balanced Detail)</option>
@@ -140,24 +128,16 @@ ${summaryData.keyTakeaways.map(point => `- ${point}`).join('\n')}
 
                             <button 
                                 type="submit" 
+                                className="sum-config-submit-btn"
                                 disabled={isGenerating || passedFiles.length === 0}
-                                style={{ 
-                                    marginTop: '10px', 
-                                    display: 'flex', 
-                                    justifyContent: 'center', 
-                                    gap: '8px',
-                                    padding: '12px',
-                                    backgroundColor: 'var(--primary)',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: 'var(--radius-sm)',
-                                    fontWeight: '600',
-                                    cursor: (isGenerating || passedFiles.length === 0) ? 'not-allowed' : 'pointer',
-                                    opacity: (isGenerating || passedFiles.length === 0) ? 0.7 : 1,
-                                    transition: 'var(--transition)'
-                                }}
                             >
-                                {isGenerating ? <><Loader2 className="spinner" size={20} /> Analyzing Document...</> : 'Generate Summary'}
+                                {isGenerating ? (
+                                    <>
+                                        <Loader2 className="spinner" size={20} /> Analyzing Document...
+                                    </>
+                                ) : (
+                                    'Generate Summary'
+                                )}
                             </button>
                         </form>
                     </div>
@@ -166,9 +146,6 @@ ${summaryData.keyTakeaways.map(point => `- ${point}`).join('\n')}
         );
     }
 
-    // ==========================================
-    // RENDER: SUMMARY VIEW
-    // ==========================================
     return (
         <div className="summary-page">
             <header className="sum-header">
@@ -188,7 +165,7 @@ ${summaryData.keyTakeaways.map(point => `- ${point}`).join('\n')}
                     
                     <section className="sum-section">
                         <h3>Overview</h3>
-                        <p style={{ whiteSpace: 'pre-line' }}>{summaryData.content}</p>
+                        <p className="sum-content-text">{summaryData.content}</p>
                     </section>
 
                     <section className="sum-section">
@@ -198,7 +175,7 @@ ${summaryData.keyTakeaways.map(point => `- ${point}`).join('\n')}
                                 <div key={idx} className="sum-point-card">
                                     <div className="point-bullet">{idx + 1}</div>
                                     <div className="point-content">
-                                        <p style={{ margin: 0 }}>{point}</p>
+                                        <p className="point-text">{point}</p>
                                     </div>
                                 </div>
                             ))}
